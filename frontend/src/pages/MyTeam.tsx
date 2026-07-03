@@ -117,10 +117,12 @@ function TeamMatchRow({
   match,
   teamId,
   kickoffFormat,
+  isNext,
 }: {
   match: Match;
   teamId: number;
   kickoffFormat: Intl.DateTimeFormat;
+  isNext: boolean;
 }) {
   const opp = opponent(match, teamId);
   const g = goalsFor(match, teamId);
@@ -149,6 +151,7 @@ function TeamMatchRow({
         <span className="tmatch-time">{kickoffFormat.format(new Date(match.utc_date))}</span>
       )}
       {r && <span className={`result-chip ${r.toLowerCase()}`}>{r}</span>}
+      {isNext && !isLive(match) && <span className="next-chip">NEXT</span>}
       {isLive(match) && <LiveBadge />}
     </li>
   );
@@ -212,7 +215,13 @@ function TeamDetailView({ detail }: { detail: TeamDetail }) {
           {/* Latest first. Derived stats/form/status above still use the
               chronological `detail.matches`; only the display order flips. */}
           {[...detail.matches].reverse().map((m) => (
-            <TeamMatchRow key={m.id} match={m} teamId={id} kickoffFormat={kickoffFormat} />
+            <TeamMatchRow
+              key={m.id}
+              match={m}
+              teamId={id}
+              kickoffFormat={kickoffFormat}
+              isNext={m.id === next?.id}
+            />
           ))}
         </ul>
       </section>

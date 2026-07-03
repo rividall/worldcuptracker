@@ -685,6 +685,19 @@ body {
   font-weight: 700;
   color: var(--bg);
 }
+
+.next-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 6px;
+  background: var(--green);
+  color: var(--bg);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
 .form-pill.w,
 .result-chip.w {
   background: var(--gold);

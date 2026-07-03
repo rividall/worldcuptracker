@@ -9,6 +9,12 @@ export default function TabBar() {
       <NavLink to="/bracket" className={({ isActive }) => (isActive ? "tab active" : "tab")}>
         Bracket
       </NavLink>
+      <NavLink to="/team" className={({ isActive }) => (isActive ? "tab active" : "tab")}>
+        My Team
+      </NavLink>
+      <NavLink to="/numbers" className={({ isActive }) => (isActive ? "tab active" : "tab")}>
+        Cup Numbers
+      </NavLink>
     </nav>
   );
 }

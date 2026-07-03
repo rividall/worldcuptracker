@@ -12,6 +12,8 @@ from app.routers.bracket import router as bracket_router
 from app.routers.groups import router as groups_router
 from app.routers.matches import router as matches_router
 from app.routers.meta import router as meta_router
+from app.routers.stats import router as stats_router
+from app.routers.teams import router as teams_router
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +84,8 @@ app.include_router(groups_router)
 app.include_router(matches_router)
 app.include_router(bracket_router)
 app.include_router(meta_router)
+app.include_router(teams_router)
+app.include_router(stats_router)
 
 
 @app.get("/health")

@@ -1,13 +1,29 @@
 """Shared ORM → schema serializers used by the routers."""
 
-from app.models import Match, Team
-from app.schemas import MatchOut, ScoreOut, TeamOut
+from app.models import Match, Scorer, Team
+from app.schemas import MatchOut, ScoreOut, ScorerOut, TeamOut
 
 
 def team_out(team: Team | None) -> TeamOut | None:
     if team is None:
         return None
     return TeamOut(id=team.id, name=team.name, tla=team.tla, crest_url=team.crest_url)
+
+
+def scorer_out(scorer: Scorer, teams: dict[int, Team]) -> ScorerOut:
+    team = teams.get(scorer.team_id)
+    return ScorerOut(
+        player_id=scorer.player_id,
+        player_name=scorer.player_name,
+        nationality=scorer.nationality,
+        team_id=scorer.team_id,
+        team_tla=team.tla if team else None,
+        team_crest=team.crest_url if team else None,
+        goals=scorer.goals,
+        assists=scorer.assists,
+        penalties=scorer.penalties,
+        played_matches=scorer.played_matches,
+    )
 
 
 def match_out(match: Match, teams: dict[int, Team]) -> MatchOut:

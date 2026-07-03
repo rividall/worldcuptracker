@@ -70,3 +70,63 @@ class LastSyncOut(BaseModel):
     status: str | None = None
     matches_updated: int | None = None
     detail: str | None = None
+
+
+class ScorerOut(BaseModel):
+    player_id: int
+    player_name: str
+    nationality: str | None = None
+    team_id: int | None = None
+    team_tla: str | None = None
+    team_crest: str | None = None
+    goals: int
+    assists: int | None = None
+    penalties: int | None = None
+    played_matches: int | None = None
+
+
+class TeamListItemOut(TeamOut):
+    group_name: str | None = None
+
+
+class TeamDetailOut(BaseModel):
+    team: TeamOut
+    group_name: str | None = None
+    standing: StandingOut | None = None
+    matches: list[MatchOut]
+    scorers: list[ScorerOut]
+
+
+class TournamentTotalsOut(BaseModel):
+    goals: int
+    matches_played: int
+    matches_total: int
+    goals_per_match: float
+    shootouts: int
+    extra_time: int
+    clean_sheets: int
+
+
+class StatTeamOut(BaseModel):
+    team: TeamOut
+    value: int
+
+
+class StatMatchOut(BaseModel):
+    match: MatchOut
+    value: int  # goal margin (biggest win) or combined goals (highest scoring)
+
+
+class SuperlativesOut(BaseModel):
+    best_attack: StatTeamOut | None = None
+    best_defense: StatTeamOut | None = None
+    most_clean_sheets: StatTeamOut | None = None
+    biggest_win: StatMatchOut | None = None
+    highest_scoring: StatMatchOut | None = None
+
+
+class CupNumbersOut(BaseModel):
+    totals: TournamentTotalsOut
+    top_scorers: list[ScorerOut]
+    top_assisters: list[ScorerOut]
+    superlatives: SuperlativesOut

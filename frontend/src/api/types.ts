@@ -67,8 +67,70 @@ export interface LastSync {
   detail: string | null;
 }
 
+export interface TeamListItem extends Team {
+  group_name: string | null;
+}
+
+export interface Scorer {
+  player_id: number;
+  player_name: string;
+  nationality: string | null;
+  team_id: number | null;
+  team_tla: string | null;
+  team_crest: string | null;
+  goals: number;
+  assists: number | null;
+  penalties: number | null;
+  played_matches: number | null;
+}
+
+export interface TeamDetail {
+  team: Team;
+  group_name: string | null;
+  standing: Standing | null;
+  matches: Match[];
+  scorers: Scorer[];
+}
+
+export interface TournamentTotals {
+  goals: number;
+  matches_played: number;
+  matches_total: number;
+  goals_per_match: number;
+  shootouts: number;
+  extra_time: number;
+  clean_sheets: number;
+}
+
+export interface StatTeam {
+  team: Team;
+  value: number;
+}
+
+export interface StatMatch {
+  match: Match;
+  value: number;
+}
+
+export interface Superlatives {
+  best_attack: StatTeam | null;
+  best_defense: StatTeam | null;
+  most_clean_sheets: StatTeam | null;
+  biggest_win: StatMatch | null;
+  highest_scoring: StatMatch | null;
+}
+
+export interface CupNumbers {
+  totals: TournamentTotals;
+  top_scorers: Scorer[];
+  top_assisters: Scorer[];
+  superlatives: Superlatives;
+}
+
 export const LIVE_STATUSES = ["IN_PLAY", "PAUSED", "LIVE"];
 
 export function isLive(match: Match): boolean {
   return LIVE_STATUSES.includes(match.status);
 }
+
+export const FINISHED_STATUS = "FINISHED";

@@ -24,6 +24,9 @@ Auth: HTTP header `X-Auth-Token: <token>` (env `FOOTBALL_DATA_API_KEY`)
 |----------|---------|----------------|
 | `GET /competitions/WC/standings` | Group tables A–L | 1 |
 | `GET /competitions/WC/matches` | All 104 matches, all stages | 1 |
+| `GET /competitions/WC/scorers?limit=100` | Top scorers (goals, **assists**, penalties) — powers the My Team tab | 1 |
+
+**Scorers note (added 2026-07-03):** the `/scorers` endpoint *is* available on the free tier and returns goals, assists, penalties, and matches played per player. It's **tournament-aggregate only** — the per-match `goals`/`bookings` arrays are `null` on the free tier, so we cannot show who scored in a specific match. `assists`/`penalties` are inconsistently populated by the provider. Stored in the `scorers` table, rebuilt each sync.
 
 ---
 
@@ -76,13 +79,14 @@ Facts verified against the live tournament:
 - **Group naming is inconsistent:** matches use `"GROUP_A"`, standings use `"Group A"`. Normalize both to the letter (`"A"`).
 - **Unresolved knockout slots:** `homeTeam`/`awayTeam` objects present with all-null fields (`id: null`) until qualified. 11 of 32 knockout matches unresolved as of probe date.
 - **Extra time / penalties:** `score.duration` ∈ `REGULAR` / `EXTRA_TIME` / `PENALTY_SHOOTOUT`; shootout adds `score.penalties: {home, away}`. `score.winner` (`HOME_TEAM`/`AWAY_TEAM`) is authoritative — use it, not the goal comparison.
+- **⚠️ `fullTime` folds in the shootout:** for a `PENALTY_SHOOTOUT` match, `score.fullTime` = `regularTime + extraTime + penalties` (verified: match 537415 reports `fullTime 4-5` for a game that was `regularTime 1-1`, `penalties 3-4`). We store **goals in play only** — `home_score = fullTime - penalties` when a shootout exists — and keep the shootout in `penalties_home/away`. Otherwise the score (and every "total goals"/"highest scoring" stat) would double-count the shootout. See `app/services/sync.py:_sync_matches`.
 - **Crests:** SVG URLs on `crests.football-data.org` — hotlink directly, don't proxy or store.
 
 ---
 
 ## 3. Rate Limits & Sync Design
 
-Free tier: **10 requests/minute** (429 with `Retry-After` when exceeded). Our sync = 2 requests per run, hourly (`FETCH_INTERVAL_MINUTES=60`) → ~48 requests/day. Zero risk. Rules (also in CLAUDE.md): never call the API from request handlers; only the background sync task touches it; retry with backoff on failure.
+Free tier: **10 requests/minute** (429 with `Retry-After` when exceeded). Our sync = 3 requests per run (standings + matches + scorers), hourly (`FETCH_INTERVAL_MINUTES=60`) → ~72 requests/day. Zero risk. Rules (also in CLAUDE.md): never call the API from request handlers; only the background sync task touches it; retry with backoff on failure.
 
 ---
 

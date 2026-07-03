@@ -33,6 +33,14 @@ class FootballDataClient:
     async def get_matches(self) -> dict:
         return await self._get(f"/competitions/{settings.FOOTBALL_DATA_COMPETITION}/matches")
 
+    async def get_scorers(self, limit: int = 100) -> dict:
+        # Top scorers for the whole competition (goals + assists + penalties).
+        # limit caps how many ranked players we store; 100 covers every
+        # meaningful scorer at WC scale (per-team lists are a subset of this).
+        return await self._get(
+            f"/competitions/{settings.FOOTBALL_DATA_COMPETITION}/scorers?limit={limit}"
+        )
+
 
 def normalize_group(raw: str | None) -> str | None:
     """'GROUP_A' (matches) and 'Group A' (standings) → 'A'."""

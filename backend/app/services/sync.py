@@ -12,7 +12,7 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session
-from app.models import GroupStanding, Match, SyncRun, Team
+from app.models import GroupStanding, Match, Scorer, SyncRun, Team
 from app.services.football_data import FootballDataClient, normalize_group
 
 logger = logging.getLogger(__name__)
@@ -106,14 +106,54 @@ async def _sync_matches(session: AsyncSession, payload: dict) -> int:
         match.status = data["status"]
         match.home_team_id = data.get("homeTeam", {}).get("id")
         match.away_team_id = data.get("awayTeam", {}).get("id")
-        match.home_score = full_time.get("home")
-        match.away_score = full_time.get("away")
+        # football-data's fullTime folds the shootout into the score (a 1-1 game
+        # won 4-3 on pens reports fullTime 5-4). Store goals in play only
+        # (regular + extra time) by removing the shootout; the shootout lives in
+        # penalties_home/away. For non-shootout matches penalties is absent, so
+        # the score is fullTime unchanged.
+        ft_home = full_time.get("home")
+        ft_away = full_time.get("away")
+        pen_home = penalties.get("home")
+        pen_away = penalties.get("away")
+        if ft_home is not None and pen_home is not None:
+            match.home_score = ft_home - pen_home
+            match.away_score = ft_away - pen_away
+        else:
+            match.home_score = ft_home
+            match.away_score = ft_away
         match.duration = score.get("duration") or "REGULAR"
-        match.penalties_home = penalties.get("home")
-        match.penalties_away = penalties.get("away")
+        match.penalties_home = pen_home
+        match.penalties_away = pen_away
         match.winner_team_id = _winner_team_id(data)
         match.last_updated = new_last_updated
     return updated
+
+
+async def _sync_scorers(session: AsyncSession, payload: dict) -> int:
+    """Replace the scorers table with the latest tournament top-scorer rows."""
+    await session.execute(delete(Scorer))
+    count = 0
+    for row in payload.get("scorers", []):
+        player = row.get("player") or {}
+        team = row.get("team") or {}
+        if player.get("id") is None or team.get("id") is None:
+            continue
+        # Ensure the team row exists (flushes) before the FK-bearing Scorer row.
+        await _upsert_team(session, team)
+        session.add(
+            Scorer(
+                player_id=player["id"],
+                player_name=player.get("name") or "Unknown",
+                nationality=player.get("nationality"),
+                team_id=team["id"],
+                goals=row.get("goals") or 0,
+                assists=row.get("assists"),
+                penalties=row.get("penalties"),
+                played_matches=row.get("playedMatches"),
+            )
+        )
+        count += 1
+    return count
 
 
 async def _fetch_with_retry(client: FootballDataClient):
@@ -122,7 +162,8 @@ async def _fetch_with_retry(client: FootballDataClient):
         try:
             standings = await client.get_standings()
             matches = await client.get_matches()
-            return standings, matches
+            scorers = await client.get_scorers()
+            return standings, matches, scorers
         except Exception as error:  # noqa: BLE001 — log and retry
             last_error = error
             logger.warning("Sync fetch attempt %s/%s failed: %s", attempt, RETRIES, error)
@@ -141,17 +182,18 @@ async def run_sync() -> None:
 
     client = FootballDataClient()
     try:
-        standings_payload, matches_payload = await _fetch_with_retry(client)
+        standings_payload, matches_payload, scorers_payload = await _fetch_with_retry(client)
         async with async_session() as session:
             await _sync_standings(session, standings_payload)
             updated = await _sync_matches(session, matches_payload)
+            scorers = await _sync_scorers(session, scorers_payload)
             run = await session.get(SyncRun, run_id)
             run.finished_at = datetime.now(timezone.utc)
             run.status = "success"
             run.matches_updated = updated
-            run.detail = f"{updated} matches touched"
+            run.detail = f"{updated} matches touched, {scorers} scorers"
             await session.commit()
-        logger.info("Sync complete: %s matches touched", updated)
+        logger.info("Sync complete: %s matches touched, %s scorers", updated, scorers)
     except Exception as error:  # noqa: BLE001 — record failure, don't crash the loop
         logger.exception("Sync failed")
         async with async_session() as session:

@@ -51,7 +51,30 @@ Multi-phase build plan for worldcup. Each phase produces a runnable increment. A
 
 ---
 
-## Deployment Phase: Server Setup **NOT STARTED**
+## Phase 4: My Team + timezone picker **COMPLETE** (2026-07-03)
+
+### Backend
+- [x] `scorers` model + migration `0002` (player, team, goals, assists, penalties, played) — rebuilt each sync
+- [x] Sync step `_sync_scorers` pulls `/competitions/WC/scorers?limit=100` (3rd request/run, still trivial vs the limit)
+- [x] `GET /api/v1/teams` (picker list) and `GET /api/v1/teams/{id}` (standing + all matches + scorers); `404` on unknown team
+- [x] Tests still green (11 passing)
+
+### Frontend
+- [x] **My Team** tab: team picker (grouped by group A–L), remembered in `localStorage` (`worldcup.myteam`)
+- [x] Team page: identity header + status badge, next match, group standing, summary stats, recent form, full match list (team perspective), scorers/assisters table — all in the selected timezone
+- [x] **Timezone picker** in the header (Spain / Chile / device zone), remembered in `localStorage` (`worldcup.timezone`); `lib/time.ts` + `lib/timezone.tsx`
+
+### Cup Numbers tab (added same phase)
+- [x] `GET /api/v1/stats` — tournament totals (goals, goals/match, matches played/total, shootouts, extra-time, clean sheets), top scorers, top assisters, and superlatives (best attack/defense, most clean sheets, biggest win, highest-scoring match). All computed from matches + `scorers`; no new external calls.
+- [x] **Cup Numbers** tab: totals stat grid, superlative cards, scorers + assists leaderboards.
+
+### Known limits
+- Scorers are tournament aggregates (no per-match goal events on the free tier); assists/penalties populated where the provider supplies them.
+- No cards / saves / possession / xG (not available on the free tier), so those stats are out of scope.
+
+---
+
+## Deployment Phase: Server Setup **COMPLETE** (2026-07-03) — live at worldcup.buenalynch.com
 
 This phase takes the project from "works on localhost" to "running on the server behind a subdomain." Read [SERVER-INFRASTRUCTURE.md](SERVER-INFRASTRUCTURE.md) before starting.
 

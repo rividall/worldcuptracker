@@ -11,7 +11,7 @@
 
 worldcup is a **public read-only API**. There is no authentication, no user accounts, and no admin panel integration — by design. The frontend reads tournament data that the backend syncs hourly from football-data.org.
 
-**Current Status:** 5 endpoints across 4 domains (planned — built in Phases 1 and 2)
+**Current Status:** 8 endpoints across 6 domains
 
 **Deployment:** This API runs as a Docker container on `cepelynvault`, exposed via Cloudflare Tunnel at `worldcup.buenalynch.com`. See [SERVER-INFRASTRUCTURE.md](SERVER-INFRASTRUCTURE.md) for the full traffic flow.
 
@@ -24,6 +24,8 @@ worldcup is a **public read-only API**. There is no authentication, no user acco
 3. [Matches](#matches-apiv1matches) - All matches, filterable by stage
 4. [Bracket](#bracket-apiv1bracket) - Knockout structure for the radial view
 5. [Meta](#meta-apiv1meta) - Sync status
+6. [Teams](#teams-apiv1teams) - Team picker list + single-team detail (My Team tab)
+7. [Stats](#stats-apiv1stats) - Tournament-wide numbers (Cup Numbers tab)
 
 ---
 
@@ -150,6 +152,68 @@ Sync status, for the "last updated" indicator.
 
 ---
 
+## Teams (`/api/v1/teams`)
+
+Powers the **My Team** tab: a picker over all teams plus a single-team detail view (standing, all matches, tournament scorers/assisters).
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `GET`  | `/teams` | All teams (id, name, tla, crest, `group_name`) for the picker | Public |
+| `GET`  | `/teams/{team_id}` | One team's standing, all its matches, and its scorers. `404` if unknown | Public |
+
+**`/teams/{team_id}` response (truncated):**
+```json
+{
+  "team": { "id": 773, "name": "France", "tla": "FRA", "crest_url": "..." },
+  "group_name": "I",
+  "standing": {
+    "position": 1, "team": { "...": "TeamOut" },
+    "played": 3, "won": 3, "drawn": 0, "lost": 0,
+    "goals_for": 7, "goals_against": 2, "goal_difference": 5, "points": 9
+  },
+  "matches": [ { "...": "MatchOut shape, chronological" } ],
+  "scorers": [
+    { "player_id": 3374, "player_name": "Kylian Mbappé", "nationality": "France",
+      "goals": 6, "assists": 2, "penalties": null, "played_matches": 4 }
+  ]
+}
+```
+
+Each scorer also carries `team_id`, `team_tla`, and `team_crest` (the player's country, used for the flag + code shown in the Cup Numbers leaderboards). `standing` is `null` once a team leaves the group stage context. `scorers` are **tournament aggregates** from football-data.org's `/scorers` endpoint — the free tier exposes no per-match goal events, so we cannot attribute goals to specific matches. `assists`/`penalties` are populated where the provider supplies them (often `null`). The frontend derives form, summary stats, and the status badge from `matches`.
+
+---
+
+## Stats (`/api/v1/stats`)
+
+Tournament-wide numbers for the **Cup Numbers** tab. All computed from data we already hold (matches + `scorers`) — no external calls.
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| `GET`  | `/stats` | Totals, top scorers, top assisters, and team/match superlatives | Public |
+
+**Response (truncated):**
+```json
+{
+  "totals": {
+    "goals": 261, "matches_played": 85, "matches_total": 104,
+    "goals_per_match": 3.07, "shootouts": 2, "extra_time": 1, "clean_sheets": 46
+  },
+  "top_scorers":   [ { "player_name": "Kylian Mbappé", "goals": 6, "assists": 2, "...": "ScorerOut" } ],
+  "top_assisters": [ { "player_name": "Alexander Isak", "assists": 3, "...": "ScorerOut" } ],
+  "superlatives": {
+    "best_attack":       { "team": { "...": "TeamOut" }, "value": 14 },
+    "best_defense":      { "team": { "...": "TeamOut" }, "value": 0 },
+    "most_clean_sheets": { "team": { "...": "TeamOut" }, "value": 4 },
+    "biggest_win":       { "match": { "...": "MatchOut" }, "value": 6 },
+    "highest_scoring":   { "match": { "...": "MatchOut" }, "value": 9 }
+  }
+}
+```
+
+Team superlatives are aggregated across **all** matches (group + knockout), not just the group stage. `value` is goals/conceded/clean-sheet counts for team stats, and goal margin (`biggest_win`) or combined goals (`highest_scoring`) for match stats. Leaderboards are capped at 15 rows. Any superlative can be `null` before enough matches are played.
+
+---
+
 ## Authentication
 
 None. All endpoints are public and read-only. Do not add auth — see the project rules in CLAUDE.md.
@@ -210,7 +274,7 @@ See [PROGRESS.md](PROGRESS.md) for upcoming API features by phase.
 | `status` | varchar(20) | SCHEDULED / TIMED / IN_PLAY / PAUSED / FINISHED |
 | `home_team_id` | integer FK → teams.id, nullable | null until qualified |
 | `away_team_id` | integer FK → teams.id, nullable | null until qualified |
-| `home_score` | integer nullable | full-time (plus extra time/penalties noted in `duration`) |
+| `home_score` | integer nullable | goals in play (regular + extra time). Shootout is **not** added here — it lives in `penalties_*`. `duration` says whether ET/pens happened |
 | `away_score` | integer nullable | |
 | `winner_team_id` | integer FK → teams.id, nullable | |
 | `bracket_position` | integer nullable | index within its round, bracket order |
@@ -227,6 +291,21 @@ See [PROGRESS.md](PROGRESS.md) for upcoming API features by phase.
 | `goals_for` / `goals_against` / `goal_difference` | integer | |
 | `points` | integer | |
 | `updated_at` | timestamptz | last sync touch |
+
+### `scorers`
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | integer PK | auto-increment |
+| `player_id` | integer | football-data.org player id (external) |
+| `player_name` | varchar(120) | |
+| `nationality` | varchar(60) nullable | |
+| `team_id` | integer FK → teams.id | |
+| `goals` | integer | tournament total to date |
+| `assists` | integer nullable | provider-dependent, often null |
+| `penalties` | integer nullable | provider-dependent |
+| `played_matches` | integer nullable | |
+
+Rebuilt in full each sync (like `group_standings`). Top ~100 scorers competition-wide; a team's list is the subset with `team_id = {id}`.
 
 ### `sync_runs`
 | Column | Type | Notes |

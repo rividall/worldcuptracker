@@ -52,9 +52,9 @@ worldcup/
 │   ├── app/
 │   │   ├── main.py            # FastAPI app, health endpoint, lifespan (migrations + hourly sync)
 │   │   ├── core/              # config, database, security helpers
-│   │   ├── models/            # SQLAlchemy models (teams, matches, standings, sync_runs)
+│   │   ├── models/            # SQLAlchemy models (teams, matches, standings, scorers, sync_runs)
 │   │   ├── schemas/           # Pydantic schemas
-│   │   ├── routers/           # groups, matches, bracket, meta
+│   │   ├── routers/           # groups, matches, bracket, meta, teams, stats
 │   │   └── services/          # football-data.org fetcher + sync scheduler
 │   ├── alembic/               # migrations
 │   ├── tests/
@@ -63,8 +63,9 @@ worldcup/
 ├── frontend/
 │   ├── src/
 │   │   ├── api/client.ts      # typed fetch wrapper
-│   │   ├── components/        # GroupCard, RadialBracket, TabBar, ...
-│   │   ├── pages/             # GroupPhase, EliminationPhase
+│   │   ├── components/        # GroupCard, RadialBracket, TabBar, TimezonePicker, ...
+│   │   ├── lib/               # time zones (time.ts) + timezone context (timezone.tsx)
+│   │   ├── pages/             # GroupPhase, EliminationPhase, MyTeam, CupNumbers
 │   │   └── App.tsx
 │   ├── nginx.conf             # SPA fallback + /api proxy to backend
 │   └── Dockerfile
@@ -99,7 +100,7 @@ worldcup/
 
 ## API Documentation
 
-**Current Status:** 5 endpoints across 4 domains (groups, matches, bracket, meta) + health — all implemented
+**Current Status:** 8 endpoints across 6 domains (groups, matches, bracket, meta, teams, stats) + health — all implemented
 
 **Resources:**
 - [API Reference](docs/API.md) - Complete endpoint list with examples
@@ -117,7 +118,10 @@ See [docs/PROGRESS.md](docs/PROGRESS.md) for the full implementation checklist.
 - ✅ **Phase 1 complete** -- football-data.org fetcher, hourly sync, Group phase tab with swipe
 - ✅ **Phase 2 complete** -- Radial elimination bracket (SVG, trophy at center)
 - ✅ **Phase 3 complete** -- Live badges, last-updated indicator, sync retries (live-window fast-sync deferred)
-- ⬜ **Deployment phase** -- Docker + tunnel + subdomain setup
+- ✅ **Deployed** -- Docker + Cloudflare Tunnel at worldcup.buenalynch.com
+- ✅ **My Team tab** -- Team picker (localStorage-remembered) → standing, matches, form, summary stats, and tournament scorers/assisters (new `scorers` sync + `/api/v1/teams` endpoints)
+- ✅ **Cup Numbers tab** -- Tournament-wide stats: totals (goals, goals/match, shootouts, extra-time, clean sheets), top scorers, top assists, and team/match superlatives (`/api/v1/stats`)
+- ✅ **Timezone picker** -- Header picker (Spain / Chile / device zone), localStorage-remembered
 
 ## Documentation
 

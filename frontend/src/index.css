@@ -1,0 +1,491 @@
+/* worldcup — dark stadium theme. Tokens per docs/STYLEGUIDE.md */
+
+:root {
+  --bg: #111111;
+  --card: #1c1c1e;
+  --border: #2c2c2e;
+  --gold: #d4af37;
+  --text: #d1d1d6;
+  --text-strong: #f2f2f7;
+  --text-muted: #8e8e93;
+  --live: #ff453a;
+  --tab-height: 56px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Shell ---------- */
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 16px;
+}
+
+.app-header h1 {
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--text-strong);
+}
+
+.sync-status {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.app-main {
+  padding: 0 16px calc(var(--tab-height) + 24px);
+  max-width: 1024px;
+  margin: 0 auto;
+}
+
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--tab-height);
+  display: flex;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  z-index: 10;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  border-top: 2px solid transparent;
+}
+
+.tab.active {
+  color: var(--gold);
+  border-top-color: var(--gold);
+}
+
+.state-msg {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 48px 16px;
+}
+
+.state-msg.error {
+  color: var(--live);
+}
+
+/* ---------- Live badge ---------- */
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--live);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--live);
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* ---------- Group phase ---------- */
+
+.carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  margin: 0 -16px;
+}
+
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-item {
+  flex: 0 0 100%;
+  scroll-snap-align: center;
+  padding: 0 16px;
+}
+
+.group-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.group-card h2 {
+  margin: 0 0 12px;
+  color: var(--text-strong);
+  font-size: 1.1rem;
+}
+
+.standings {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.standings th {
+  color: var(--text-muted);
+  font-weight: 500;
+  text-align: center;
+  padding: 4px 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.standings td {
+  text-align: center;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.standings .team {
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.standings .team-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.standings .pts {
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.standings tr.qualified .pos {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.crest-sm {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+.match-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  font-size: 0.85rem;
+}
+
+.match-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.match-row:last-child {
+  border-bottom: none;
+}
+
+.match-row .match-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.match-row .match-team.home {
+  justify-content: flex-end;
+}
+
+.match-score {
+  font-weight: 700;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+  min-width: 48px;
+  text-align: center;
+}
+
+.match-score .pens {
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.match-time {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  min-width: 88px;
+  text-align: center;
+}
+
+.match-row.is-live .match-score {
+  color: var(--live);
+}
+
+.carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.nav-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dot {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.dot.active {
+  border-color: var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+}
+
+/* ---------- Radial bracket ---------- */
+
+.elimination-phase {
+  position: relative;
+}
+
+.radial-bracket {
+  width: 100%;
+  height: auto;
+  display: block;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.radial-bracket .link {
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.radial-bracket .link.won {
+  stroke: var(--gold);
+  stroke-width: 2.5;
+}
+
+.radial-bracket .node-bg {
+  fill: var(--card);
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.radial-bracket .node.dim {
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+
+.radial-bracket .node-tbd {
+  fill: var(--text-muted);
+  font-size: 14px;
+  text-anchor: middle;
+}
+
+.radial-bracket .trophy {
+  font-size: 52px;
+  text-anchor: middle;
+  cursor: pointer;
+}
+
+.radial-bracket .clickable {
+  cursor: pointer;
+}
+
+.radial-bracket .pulse {
+  fill: none;
+  stroke: var(--live);
+  stroke-width: 2;
+  animation: pulse-ring 1.5s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.third-place {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px auto 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 10px 16px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.stage-label {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Match detail panel ---------- */
+
+.match-detail {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tab-height) + 12px);
+  transform: translateX(-50%);
+  width: min(92vw, 420px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 20;
+}
+
+.match-detail header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.close-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.detail-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.detail-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  color: var(--text-strong);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.detail-team:last-child {
+  justify-content: flex-end;
+}
+
+.detail-team img {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.detail-score {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.detail-note,
+.detail-kickoff {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+/* ---------- Desktop ---------- */
+
+@media (min-width: 1024px) {
+  .tab-bar {
+    position: sticky;
+    top: 0;
+    bottom: auto;
+    border-top: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tab.active {
+    border-top-color: transparent;
+    border-bottom: 2px solid var(--gold);
+  }
+
+  .app-main {
+    padding-bottom: 24px;
+  }
+
+  .match-detail {
+    bottom: 24px;
+  }
+}

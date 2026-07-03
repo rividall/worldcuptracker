@@ -1,0 +1,69 @@
+# Run: sudo docker compose up --build
+# Dev: sudo docker compose up
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-app}-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # Postgres is internal-only in production (reached over the compose network
+    # by the backend). No host port is exposed — nothing but Cloudflare-tunneled
+    # web traffic should touch this box. For local DB access, uncomment below
+    # (DB_PORT defaults to 5437 in .env) or use: docker compose exec db psql.
+    # ports:
+    #   - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-app}-backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+      UPLOAD_DIR: /app/uploads
+      FOOTBALL_DATA_API_KEY: ${FOOTBALL_DATA_API_KEY}
+      FOOTBALL_DATA_COMPETITION: ${FOOTBALL_DATA_COMPETITION:-WC}
+      FETCH_INTERVAL_MINUTES: ${FETCH_INTERVAL_MINUTES:-60}
+    volumes:
+      - uploads:/app/uploads
+    # No host port in production. The frontend nginx proxies /api to the backend
+    # over the compose network (http://backend:8000), so only the frontend needs
+    # host exposure for cloudflared. Uncomment for direct local API/docs access
+    # (e.g. http://localhost:8006/docs); BACKEND_PORT defaults to 8006 in .env.
+    # ports:
+    #   - "${BACKEND_PORT:-8000}:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ${COMPOSE_PROJECT_NAME:-app}-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+
+volumes:
+  pgdata:
+  uploads:

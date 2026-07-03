@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     FOOTBALL_DATA_API_KEY: str = "CHANGE_ME"
     FOOTBALL_DATA_COMPETITION: str = "WC"
     FETCH_INTERVAL_MINUTES: int = 60
+    # Faster cadence while a match is live/in-window (free tier = 10 req/min;
+    # each sync is 3 requests, so even 2 min is far within limits).
+    LIVE_FETCH_INTERVAL_MINUTES: int = 2
 
     @property
     def cors_origins(self) -> list[str]:

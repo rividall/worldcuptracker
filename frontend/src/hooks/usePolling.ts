@@ -1,15 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /**
- * Fetch on mount, then re-fetch every `intervalMs` while the tab is visible.
+ * Fetch on mount, then re-fetch every `interval` ms while the tab is visible.
  * Also re-fetches immediately when the tab becomes visible again.
+ *
+ * `interval` may be a number, or a function of the latest data — e.g. return a
+ * short interval when a match is live and a long one otherwise. When the derived
+ * interval changes, the timer resets to the new cadence.
  */
-export function usePolling<T>(fetcher: () => Promise<T>, intervalMs: number) {
+export function usePolling<T>(
+  fetcher: () => Promise<T>,
+  interval: number | ((data: T | null) => number),
+) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
+
+  const intervalMs = typeof interval === "function" ? interval(data) : interval;
 
   const refresh = useCallback(async () => {
     try {

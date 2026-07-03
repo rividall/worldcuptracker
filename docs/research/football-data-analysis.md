@@ -79,14 +79,15 @@ Facts verified against the live tournament:
 - **Group naming is inconsistent:** matches use `"GROUP_A"`, standings use `"Group A"`. Normalize both to the letter (`"A"`).
 - **Unresolved knockout slots:** `homeTeam`/`awayTeam` objects present with all-null fields (`id: null`) until qualified. 11 of 32 knockout matches unresolved as of probe date.
 - **Extra time / penalties:** `score.duration` ∈ `REGULAR` / `EXTRA_TIME` / `PENALTY_SHOOTOUT`; shootout adds `score.penalties: {home, away}`. `score.winner` (`HOME_TEAM`/`AWAY_TEAM`) is authoritative — use it, not the goal comparison.
-- **⚠️ `fullTime` folds in the shootout:** for a `PENALTY_SHOOTOUT` match, `score.fullTime` = `regularTime + extraTime + penalties` (verified: match 537415 reports `fullTime 4-5` for a game that was `regularTime 1-1`, `penalties 3-4`). We store **goals in play only** — `home_score = fullTime - penalties` when a shootout exists — and keep the shootout in `penalties_home/away`. Otherwise the score (and every "total goals"/"highest scoring" stat) would double-count the shootout. See `app/services/sync.py:_sync_matches`.
+- **⚠️ `fullTime` is unreliable for shootouts — use `regularTime + extraTime`:** for a `PENALTY_SHOOTOUT` match `score.fullTime` tries to fold in the shootout, but it does **not** reliably reconcile with the breakdown. Match 537415: `fullTime 4-5`, `regularTime 1-1`, `penalties 3-4` (4 = 1+3, consistent). Match 537428: `fullTime 3-5`, `regularTime 1-1`, `penalties 4-4` (3 ≠ 1+4 — inconsistent; naive `fullTime − penalties` gives a **negative** score). So we store **goals in play** as `regularTime + extraTime` when that breakdown exists (all ET/shootout matches carry it), falling back to `fullTime` for plain matches that don't. The shootout stays in `penalties_home/away`. See `app/services/sync.py:_sync_matches`.
+- **`score.winner` can be `null` on a just-finished knockout match:** the feed sometimes reports `status: FINISHED` with `winner: null` and even an impossible penalty tie (537428: `penalties 4-4`) before it settles. We can't derive a winner from that, so `winner_team_id` stays null until the next sync after the provider finalizes it. The radial bracket must therefore **not** dim both teams when there's no winner (only dim the loser once a winner exists) — see `RadialBracket.tsx`.
 - **Crests:** SVG URLs on `crests.football-data.org` — hotlink directly, don't proxy or store.
 
 ---
 
 ## 3. Rate Limits & Sync Design
 
-Free tier: **10 requests/minute** (429 with `Retry-After` when exceeded). Our sync = 3 requests per run (standings + matches + scorers), hourly (`FETCH_INTERVAL_MINUTES=60`) → ~72 requests/day. Zero risk. Rules (also in CLAUDE.md): never call the API from request handlers; only the background sync task touches it; retry with backoff on failure.
+Free tier: **10 requests/minute** (429 with `Retry-After` when exceeded). Our sync = 3 requests per run (standings + matches + scorers). Cadence is dynamic: hourly (`FETCH_INTERVAL_MINUTES=60`) normally, dropping to every `LIVE_FETCH_INTERVAL_MINUTES` (2) while a match is live/in-window. Worst case = 3 req every 2 min = ~90 req/hour, still far under the 600/hour the limit allows. Zero risk. Rules (also in CLAUDE.md): never call the API from request handlers; only the background sync task touches it; retry with backoff on failure.
 
 ---
 

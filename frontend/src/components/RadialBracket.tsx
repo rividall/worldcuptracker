@@ -102,8 +102,14 @@ export default function RadialBracket({ bracket, onSelect }: Props) {
         ] as const).forEach(([team, slot], side) => {
           const [tx, ty] = polar(TEAM_RING_RADIUS, 32, slot);
           const won = team !== null && match.winner_team_id === team.id;
+          // Only dim the loser when there's an actual winner. A finished match
+          // with no winner set (the feed hasn't settled the result yet) must
+          // not grey out BOTH teams.
           const lost =
-            match.status === "FINISHED" && team !== null && match.winner_team_id !== team.id;
+            match.status === "FINISHED" &&
+            match.winner_team_id !== null &&
+            team !== null &&
+            match.winner_team_id !== team.id;
           connectors.push(
             <line
               key={`t${match.id}-${side}`}

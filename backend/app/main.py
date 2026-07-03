@@ -15,6 +15,12 @@ from app.routers.meta import router as meta_router
 from app.routers.stats import router as stats_router
 from app.routers.teams import router as teams_router
 
+# Surface our app's INFO logs (sync results, live-window cadence) in the
+# container log alongside uvicorn's; without this only uvicorn's show.
+logging.getLogger("app").setLevel(logging.INFO)
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 

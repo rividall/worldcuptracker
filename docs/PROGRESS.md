@@ -42,7 +42,7 @@ Multi-phase build plan for worldcup. Each phase produces a runnable increment. A
 
 ### Backend
 - [x] Sync hardening: retry with backoff, respect 10 req/min limit, log failures to `sync_runs`
-- [ ] Optional (deferred): shorten sync interval during live-match windows (check scheduled kickoffs)
+- [x] Live-window fast sync (2026-07-04): dynamic interval — 2 min while a match is live/in-window, hourly otherwise (`_has_live_window`); frontend polls 45s vs 15 min to match
 
 ### Frontend
 - [x] "Last updated X min ago" indicator fed by `/api/v1/meta/last-sync`

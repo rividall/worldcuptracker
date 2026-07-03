@@ -44,6 +44,7 @@ services:
       FOOTBALL_DATA_API_KEY: ${FOOTBALL_DATA_API_KEY}
       FOOTBALL_DATA_COMPETITION: ${FOOTBALL_DATA_COMPETITION:-WC}
       FETCH_INTERVAL_MINUTES: ${FETCH_INTERVAL_MINUTES:-60}
+      LIVE_FETCH_INTERVAL_MINUTES: ${LIVE_FETCH_INTERVAL_MINUTES:-2}
     volumes:
       - uploads:/app/uploads
     # No host port in production. The frontend nginx proxies /api to the backend

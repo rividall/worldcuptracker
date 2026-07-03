@@ -6,9 +6,9 @@ handlers. 2 requests per run, well under the 10 req/min free-tier limit.
 
 import asyncio
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import async_session
@@ -97,7 +97,9 @@ async def _sync_matches(session: AsyncSession, payload: dict) -> int:
             updated += 1
 
         score = data.get("score", {})
-        full_time = score.get("fullTime", {})
+        full_time = score.get("fullTime") or {}
+        regular_time = score.get("regularTime") or {}
+        extra_time = score.get("extraTime") or {}
         penalties = score.get("penalties") or {}
 
         match.stage = data["stage"]
@@ -106,24 +108,22 @@ async def _sync_matches(session: AsyncSession, payload: dict) -> int:
         match.status = data["status"]
         match.home_team_id = data.get("homeTeam", {}).get("id")
         match.away_team_id = data.get("awayTeam", {}).get("id")
-        # football-data's fullTime folds the shootout into the score (a 1-1 game
-        # won 4-3 on pens reports fullTime 5-4). Store goals in play only
-        # (regular + extra time) by removing the shootout; the shootout lives in
-        # penalties_home/away. For non-shootout matches penalties is absent, so
-        # the score is fullTime unchanged.
-        ft_home = full_time.get("home")
-        ft_away = full_time.get("away")
-        pen_home = penalties.get("home")
-        pen_away = penalties.get("away")
-        if ft_home is not None and pen_home is not None:
-            match.home_score = ft_home - pen_home
-            match.away_score = ft_away - pen_away
+        # Store goals in play only (regular + extra time), never the shootout.
+        # Prefer the regularTime/extraTime breakdown: football-data's fullTime is
+        # unreliable for shootout matches — it sometimes doesn't reconcile with
+        # reg+extra+pens (e.g. match 537428 reports fullTime 3-5 for a game that
+        # was reg 1-1, pens 4-4, which naive subtraction would turn negative).
+        # Plain matches carry no breakdown, so fall back to fullTime there. The
+        # shootout stays in penalties_home/away.
+        if regular_time.get("home") is not None:
+            match.home_score = (regular_time.get("home") or 0) + (extra_time.get("home") or 0)
+            match.away_score = (regular_time.get("away") or 0) + (extra_time.get("away") or 0)
         else:
-            match.home_score = ft_home
-            match.away_score = ft_away
+            match.home_score = full_time.get("home")
+            match.away_score = full_time.get("away")
         match.duration = score.get("duration") or "REGULAR"
-        match.penalties_home = pen_home
-        match.penalties_away = pen_away
+        match.penalties_home = penalties.get("home")
+        match.penalties_away = penalties.get("away")
         match.winner_team_id = _winner_team_id(data)
         match.last_updated = new_last_updated
     return updated
@@ -204,10 +204,45 @@ async def run_sync() -> None:
             await session.commit()
 
 
+LIVE_STATUSES = ("IN_PLAY", "PAUSED")
+LIVE_WINDOW_BEFORE = timedelta(minutes=15)  # imminent kickoff
+LIVE_WINDOW_AFTER = timedelta(hours=3)  # kicked off but not yet finished (covers ET/pens)
+
+
+async def _has_live_window(session: AsyncSession) -> bool:
+    """True if any match is in play or inside its kickoff window (not finished).
+
+    Robust to the feed being slow to flip a match to IN_PLAY: a match whose
+    kickoff is recent and isn't FINISHED counts as live.
+    """
+    now = datetime.now(timezone.utc)
+    stmt = (
+        select(func.count())
+        .select_from(Match)
+        .where(
+            Match.status != "FINISHED",
+            or_(
+                Match.status.in_(LIVE_STATUSES),
+                and_(
+                    Match.utc_date >= now - LIVE_WINDOW_AFTER,
+                    Match.utc_date <= now + LIVE_WINDOW_BEFORE,
+                ),
+            ),
+        )
+    )
+    return bool((await session.execute(stmt)).scalar_one())
+
+
 async def sync_loop() -> None:
-    """Background loop: sync now, then every FETCH_INTERVAL_MINUTES."""
+    """Background loop: sync now, then wait — fast during live windows, hourly otherwise."""
     from app.core.config import settings
 
     while True:
         await run_sync()
-        await asyncio.sleep(settings.FETCH_INTERVAL_MINUTES * 60)
+        async with async_session() as session:
+            live = await _has_live_window(session)
+        minutes = (
+            settings.LIVE_FETCH_INTERVAL_MINUTES if live else settings.FETCH_INTERVAL_MINUTES
+        )
+        logger.info("Next sync in %s min (live window: %s)", minutes, live)
+        await asyncio.sleep(minutes * 60)

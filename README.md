@@ -90,8 +90,8 @@ worldcup/
 ## Architecture Notes
 
 - **Backend pattern**: Routers → Services → Models. Routers handle HTTP, services contain business logic (including the football-data.org fetcher), models define the schema.
-- **Data flow**: A background task in the FastAPI lifespan calls the sync service every `FETCH_INTERVAL_MINUTES` (default 60). The sync service pulls standings and fixtures/results from football-data.org (competition `WC`), upserts into Postgres, and records a row in `sync_runs`. The frontend only ever talks to our own API — never to football-data.org directly.
-- **Rate limits**: football-data.org free tier allows 10 requests/minute. The hourly sync uses 2-3 requests per run. Never fetch from the external API in request handlers.
+- **Data flow**: A background task in the FastAPI lifespan calls the sync service on a **dynamic interval** — every `FETCH_INTERVAL_MINUTES` (default 60), dropping to `LIVE_FETCH_INTERVAL_MINUTES` (default 2) while any match is live or in its kickoff window. The sync service pulls standings, matches, and scorers from football-data.org (competition `WC`), upserts into Postgres, and records a row in `sync_runs`. The frontend only ever talks to our own API — never to football-data.org directly, and it polls faster (45s vs 15 min) during live windows to match.
+- **Rate limits**: football-data.org free tier allows 10 requests/minute. Each sync uses 3 requests; even the 2-min live cadence (~90 req/hour) is far within limits. Never fetch from the external API in request handlers.
 - **Bracket is derived**: knockout structure is computed from `matches` rows (stage + winner), not stored as a separate entity.
 - **No auth**: this is a public scoreboard. There are no users, logins, or admin panel hooks.
 - **Database**: Production uses local `postgres:16-alpine` Docker container, internal only (no host port on the server).

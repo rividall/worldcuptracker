@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Match, TeamDetail, TeamListItem } from "@/api/types";
-import { FINISHED_STATUS, isLive } from "@/api/types";
+import { anyLive, FINISHED_STATUS, IDLE_POLL_MS, isLive, LIVE_POLL_MS } from "@/api/types";
 import { getTeam, getTeams } from "@/api/worldcup";
 import LiveBadge from "@/components/LiveBadge";
 import Stat from "@/components/Stat";
 import { useKickoffFormatter } from "@/lib/timezone";
 import { usePolling } from "@/hooks/usePolling";
 
-const POLL_MS = 15 * 60 * 1000;
 const STORAGE_KEY = "worldcup.myteam";
 
 const STAGE_LABELS: Record<string, string> = {
@@ -263,7 +262,7 @@ function groupedTeams(teams: TeamListItem[]): [string, TeamListItem[]][] {
 }
 
 export default function MyTeam() {
-  const { data: teams } = usePolling(getTeams, POLL_MS);
+  const { data: teams } = usePolling(getTeams, IDLE_POLL_MS);
   const [teamId, setTeamId] = useState<number | null>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -275,6 +274,7 @@ export default function MyTeam() {
 
   const [detail, setDetail] = useState<TeamDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [live, setLive] = useState(false);
 
   useEffect(() => {
     if (teamId == null) return;
@@ -298,6 +298,7 @@ export default function MyTeam() {
           if (!cancelled) {
             setDetail(d);
             setError(null);
+            setLive(anyLive(d.matches)); // speed up polling while this team is live
           }
         })
         .catch((e) => {
@@ -306,12 +307,12 @@ export default function MyTeam() {
     load();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") load();
-    }, POLL_MS);
+    }, live ? LIVE_POLL_MS : IDLE_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [teamId]);
+  }, [teamId, live]);
 
   const groups = useMemo(() => (teams ? groupedTeams(teams) : []), [teams]);
   const shown = detail && detail.team.id === teamId ? detail : null;

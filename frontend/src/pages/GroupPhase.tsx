@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from "react";
+import { anyLive, IDLE_POLL_MS, LIVE_POLL_MS } from "@/api/types";
 import { getGroups } from "@/api/worldcup";
 import GroupCard from "@/components/GroupCard";
 import { usePolling } from "@/hooks/usePolling";
 
-const POLL_MS = 15 * 60 * 1000;
-
 export default function GroupPhase() {
-  const { data: groups, error, loading } = usePolling(getGroups, POLL_MS);
+  const { data: groups, error, loading } = usePolling(getGroups, (data) =>
+    data?.some((g) => anyLive(g.matches)) ? LIVE_POLL_MS : IDLE_POLL_MS,
+  );
   const [active, setActive] = useState(0);
   const trackRef = useRef<HTMLDivElement>(null);
 

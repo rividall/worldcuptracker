@@ -134,3 +134,24 @@ export function isLive(match: Match): boolean {
 }
 
 export const FINISHED_STATUS = "FINISHED";
+
+// Poll cadences: fast while something is live, lazy otherwise.
+export const LIVE_POLL_MS = 45 * 1000;
+export const IDLE_POLL_MS = 15 * 60 * 1000;
+
+const LIVE_WINDOW_BEFORE_MS = 15 * 60 * 1000; // imminent kickoff
+const LIVE_WINDOW_AFTER_MS = 3 * 60 * 60 * 1000; // kicked off, not yet finished
+
+// Mirrors the backend live window: in play, or kickoff is recent and the match
+// isn't finished (covers the feed being slow to flip a match to IN_PLAY).
+export function isLiveWindow(match: Match): boolean {
+  if (isLive(match)) return true;
+  if (match.status === FINISHED_STATUS) return false;
+  const kickoff = new Date(match.utc_date).getTime();
+  const now = Date.now();
+  return kickoff <= now + LIVE_WINDOW_BEFORE_MS && kickoff >= now - LIVE_WINDOW_AFTER_MS;
+}
+
+export function anyLive(matches: Match[]): boolean {
+  return matches.some(isLiveWindow);
+}

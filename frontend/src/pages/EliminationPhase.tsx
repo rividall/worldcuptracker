@@ -1,13 +1,17 @@
 import { useState } from "react";
-import type { BracketMatch, Match } from "@/api/types";
-import { isLive } from "@/api/types";
+import type { Bracket, BracketMatch, Match } from "@/api/types";
+import { anyLive, IDLE_POLL_MS, isLive, LIVE_POLL_MS } from "@/api/types";
 import { getBracket } from "@/api/worldcup";
 import LiveBadge from "@/components/LiveBadge";
 import RadialBracket from "@/components/RadialBracket";
 import { useKickoffFormatter } from "@/lib/timezone";
 import { usePolling } from "@/hooks/usePolling";
 
-const POLL_MS = 15 * 60 * 1000;
+function bracketHasLive(b: Bracket): boolean {
+  const matches: Match[] = b.rounds.flatMap((r) => r.matches);
+  if (b.third_place) matches.push(b.third_place);
+  return anyLive(matches);
+}
 
 const STAGE_LABELS: Record<string, string> = {
   LAST_32: "Round of 32",
@@ -64,7 +68,9 @@ function MatchDetail({ match, onClose }: { match: Match; onClose: () => void }) 
 }
 
 export default function EliminationPhase() {
-  const { data: bracket, error, loading } = usePolling(getBracket, POLL_MS);
+  const { data: bracket, error, loading } = usePolling(getBracket, (data) =>
+    data && bracketHasLive(data) ? LIVE_POLL_MS : IDLE_POLL_MS,
+  );
   const [selected, setSelected] = useState<BracketMatch | Match | null>(null);
 
   if (loading) return <p className="state-msg">Loading bracket…</p>;

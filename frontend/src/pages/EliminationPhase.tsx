@@ -4,7 +4,7 @@ import { isLive } from "@/api/types";
 import { getBracket } from "@/api/worldcup";
 import LiveBadge from "@/components/LiveBadge";
 import RadialBracket from "@/components/RadialBracket";
-import { madridFormat } from "@/lib/time";
+import { useKickoffFormatter } from "@/lib/timezone";
 import { usePolling } from "@/hooks/usePolling";
 
 const POLL_MS = 15 * 60 * 1000;
@@ -18,17 +18,18 @@ const STAGE_LABELS: Record<string, string> = {
   FINAL: "Final",
 };
 
-const kickoffFormat = madridFormat({
+const KICKOFF_OPTS: Intl.DateTimeFormatOptions = {
   weekday: "short",
   month: "short",
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
   timeZoneName: "short",
-});
+};
 
 function MatchDetail({ match, onClose }: { match: Match; onClose: () => void }) {
   const played = match.score.home !== null;
+  const kickoffFormat = useKickoffFormatter(KICKOFF_OPTS);
   return (
     <div className="match-detail" role="dialog" aria-label="Match details">
       <header>

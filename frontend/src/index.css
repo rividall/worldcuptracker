@@ -30,8 +30,9 @@ body {
 
 .app-header {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 16px;
 }
 
@@ -41,9 +42,31 @@ body {
   color: var(--text-strong);
 }
 
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .sync-status {
   font-size: 0.75rem;
   color: var(--text-muted);
+}
+
+.tz-picker {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.tz-picker:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
 }
 
 .app-main {

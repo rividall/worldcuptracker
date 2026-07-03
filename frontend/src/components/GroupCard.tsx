@@ -1,17 +1,17 @@
 import type { Group, Match } from "@/api/types";
 import { isLive } from "@/api/types";
 import LiveBadge from "@/components/LiveBadge";
-import { madridFormat } from "@/lib/time";
+import { useKickoffFormatter } from "@/lib/timezone";
 
-const kickoffFormat = madridFormat({
+const KICKOFF_OPTS: Intl.DateTimeFormatOptions = {
   month: "short",
   day: "numeric",
   hour: "2-digit",
   minute: "2-digit",
   timeZoneName: "short",
-});
+};
 
-function MatchRow({ match }: { match: Match }) {
+function MatchRow({ match, kickoffFormat }: { match: Match; kickoffFormat: Intl.DateTimeFormat }) {
   const played = match.score.home !== null;
   return (
     <li className={`match-row${isLive(match) ? " is-live" : ""}`}>
@@ -46,6 +46,7 @@ function MatchRow({ match }: { match: Match }) {
 }
 
 export default function GroupCard({ group }: { group: Group }) {
+  const kickoffFormat = useKickoffFormatter(KICKOFF_OPTS);
   return (
     <article className="group-card" aria-label={`Group ${group.name}`}>
       <h2>Group {group.name}</h2>
@@ -82,7 +83,7 @@ export default function GroupCard({ group }: { group: Group }) {
       </table>
       <ul className="match-list">
         {group.matches.map((match) => (
-          <MatchRow key={match.id} match={match} />
+          <MatchRow key={match.id} match={match} kickoffFormat={kickoffFormat} />
         ))}
       </ul>
     </article>

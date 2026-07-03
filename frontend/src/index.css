@@ -32,7 +32,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding: 16px;
 }
 
@@ -54,6 +55,19 @@ body {
 }
 
 .tz-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.tz-picker-label {
+  white-space: nowrap;
+}
+
+.tz-picker-select {
   background: var(--card);
   color: var(--text);
   border: 1px solid var(--border);
@@ -64,7 +78,7 @@ body {
   cursor: pointer;
 }
 
-.tz-picker:focus-visible {
+.tz-picker-select:focus-visible {
   outline: 2px solid var(--gold);
   outline-offset: 1px;
 }

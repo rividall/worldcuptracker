@@ -12,8 +12,12 @@ Last updated: 2026-07-03
 | Service | Port | Container |
 |---------|------|-----------|
 | Frontend | 3007 | worldcup-frontend |
-| Backend | 8006 | worldcup-backend |
+| Backend | 8006 (internal only — NOT exposed to host) | worldcup-backend |
 | Database | 5432 (internal only, no host port) | worldcup-db |
+
+> **Note:** worldcup has no admin API and manages no user accounts. The backend port (8006) is
+> intentionally **not** exposed to the host machine — it is only reachable from within the Docker
+> network. Register worldcup in lynchAdmin as `frontend_only` (port 3007) for status-dot tracking.
 
 <!-- Add rows as your stack grows (Redis, worker, etc.) -->
 

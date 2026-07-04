@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import SyncStatus from "@/components/SyncStatus";
 import TabBar from "@/components/TabBar";
 import TimezonePicker from "@/components/TimezonePicker";
@@ -21,7 +21,8 @@ export default function App() {
         </header>
         <main className="app-main">
           <Routes>
-            <Route path="/" element={<GroupPhase />} />
+            <Route path="/" element={<Navigate to="/bracket" replace />} />
+            <Route path="/groups" element={<GroupPhase />} />
             <Route path="/bracket" element={<EliminationPhase />} />
             <Route path="/team" element={<MyTeam />} />
             <Route path="/numbers" element={<CupNumbers />} />

@@ -17,23 +17,25 @@ ROUND_ORDER = ["LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "FINAL"]
 
 # Fixed 2026 bracket slot order, by football-data match id.
 #
-# Winner-linking (below) reconstructs adjacency only for rounds that have been
-# PLAYED. For rounds still to come, football-data leaves the teams null and
-# exposes no adjacency, so we fall back to ordering by match id — which assumes
-# id order == bracket order. That assumption holds for every round EXCEPT the
-# quarter-finals and the round-of-16 that feed them: football-data numbers the
-# two middle quarters into the wrong halves. Verified against the official 2026
-# bracket on 2026-07-03 — the Brazil/Mexico quarter (QF 537384) and the
-# Spain·Portugal/USA·Belgium quarter (QF 537385) are transposed, which would let
-# Brazil meet Spain/France before the final. Pinning the true slot order for
-# just these two rounds puts Brazil & Argentina in one half and Spain & France
-# in the other. Every other round (R32, semis, final) is already id-ordered.
+# Winner-linking (below) reconstructs adjacency for rounds that have been PLAYED.
+# For rounds still to come, football-data leaves teams null and exposes no
+# adjacency, so we fall back to ordering by match id — which assumes id order ==
+# bracket order. That holds for the QUARTER_FINALS, SEMI_FINALS and FINAL: their
+# ids ARE in bracket order (QF 537383/537384 feed one semi, 537385/537386 the
+# other). It does NOT hold for the ROUND OF 16, whose two middle pairs are
+# numbered into the wrong quarters. Verified against the live QF team
+# assignments (2026-07-04): QF 537383←R16 375,376; 537384←379,380; 537385←
+# 377,378; 537386←381,382 — i.e. R16 (379,380) and (377,378) are transposed vs
+# id order. Pinning the true R16 order keeps France/Spain in one half and
+# Norway·England/Argentina in the other; once R16 is played, winner-linking
+# confirms the same thing.
+#
+# (An earlier version also swapped the quarter-finals — that was wrong: it was
+# based on reverse-engineering the R16→QF feeders before the QFs had real teams,
+# and it crossed the halves. The QF ids never needed reordering.)
 BRACKET_ORDER: dict[str, list[int]] = {
-    # R16 slots 0..7. Middle two pairs swapped vs. id order:
-    #   377,378 (Brazil/Mexico quarter) trade places with 379,380 (Spain quarter).
+    # R16 slots 0..7 in bracket order (middle two pairs swapped vs. id order).
     "LAST_16": [537375, 537376, 537379, 537380, 537377, 537378, 537381, 537382],
-    # QF slots 0..3: 537384 and 537385 swapped vs. id order.
-    "QUARTER_FINALS": [537383, 537385, 537384, 537386],
 }
 
 
